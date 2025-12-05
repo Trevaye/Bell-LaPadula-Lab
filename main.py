@@ -84,7 +84,6 @@ def main():
     while not done:
         session(messages_)
         done = input("Will another user be logging in? (y/n) ").upper() != "Y"
-
     return 0
 
 if __name__ == "__main__":

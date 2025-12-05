@@ -81,4 +81,3 @@ class Messages:
 
         except FileNotFoundError:
             print(f"ERROR! Unable to open file \"{filename}\"")
-            return
