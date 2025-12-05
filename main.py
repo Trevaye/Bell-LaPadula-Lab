@@ -2,17 +2,16 @@
 # Program:
 #    Lab 12, Bell-LaPadula
 # Author:
-#    Br. Helfrich, Kyle Mueller, <your name here if you made a change>
-# Summary: 
+#    Br. Helfrich, Kyle Mueller, Trevaye Morris
 #    This program is designed to keep track of a number of secret
 #    messages. IT will display messages to the appropriate users
 #    and withhold messages from those lacking the authority.
 ########################################################################
 
 from os import path
-import interact, messages
+import interact, messages, control
 
-# Gets the absolute path of the "messages.txt" file
+# Locate messages.txt file
 FILE_NAME = path.join(path.dirname(path.abspath(__file__)), "messages.txt")
 
 session_open = True
@@ -37,28 +36,32 @@ def display_options():
           "\to .. Display this list of options\n" + 
           "\tl .. Log out\n")
 
-################################################
-# SIMPLE PROMPT
-################################################
-def simple_prompt(prompt):
-    return input(prompt)
-
 ####################################################
 # SESSION
 # One login session
 ####################################################
-def session(messages):
+def session():
     open_session()
 
     print("Users:")
     interact.display_users()
-    username = simple_prompt("\nWhat is your username? ")
-    password = simple_prompt("What is your password? ")
 
-    interact_ = interact.Interact(username, password, messages)
+    username = input("\nWhat is your username? ")
+    password = input("What is your password? ")
+
+    # Determine security clearance before loading messages
+    clearance = control.authenticate(username)
+
+    # Load messages with user clearance
+    msgs = messages.Messages(FILE_NAME, clearance)
+
+    # Create interaction session
+    interact_ = interact.Interact(username, password, msgs)
+
     print(f"\nWelcome, {username}. Please select an option:\n")
     display_options()
 
+    # Command options
     options = {
         "o": "print('Options:'); display_options();",
         "d": "interact_.display();",
@@ -71,20 +74,18 @@ def session(messages):
 
     while session_open:
         option = input(f"{username}> ")
-        exec(options.get(option, "print(f\"Unknown option: \'{option}\'\");"))
+        exec(options.get(option, f"print(f\"Unknown option: '{option}'\");"))
 
 ####################################################
 # MAIN
-# Where it all begins and where it all ends
 ####################################################
 def main():
-    messages_ = messages.Messages(FILE_NAME)
-
     done = False
     while not done:
-        session(messages_)
+        session()
         done = input("Will another user be logging in? (y/n) ").upper() != "Y"
     return 0
+
 
 if __name__ == "__main__":
     main()

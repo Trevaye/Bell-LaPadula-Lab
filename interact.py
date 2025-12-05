@@ -11,127 +11,153 @@ import messages, control
 
 ###############################################################
 # USER
-# User has a name and a password
 ###############################################################
 class User:
     def __init__(self, name, password):
         self.name = name
         self.password = password
 
+
+# User/password list
 userlist = [
-   [ "AdmiralAbe",     "password" ],  
-   [ "CaptainCharlie", "password" ], 
-   [ "SeamanSam",      "password" ],
-   [ "SeamanSue",      "password" ],
-   [ "SeamanSly",      "password" ]
+    ["AdmiralAbe",     "password"],
+    ["CaptainCharlie", "password"],
+    ["SeamanSam",      "password"],
+    ["SeamanSue",      "password"],
+    ["SeamanSly",      "password"]
 ]
 
-###############################################################
-# USERS
-# All the users currently in the system
-###############################################################
-users = [*map(lambda u: User(*u), userlist)]
+# Convert to User objects
+users = [User(*u) for u in userlist]
 
 ID_INVALID = -1
 
-######################################################
-# INTERACT
-# One user interacting with the system
-######################################################
+
+###############################################################
+# INTERACT CLASS
+###############################################################
 class Interact:
 
     ##################################################
-    # INTERACT CONSTRUCTOR
-    # Authenticate the user and get him/her all set up
+    # CONSTRUCTOR
     ##################################################
-    def __init__(self, username, password, messages):
-        self._authenticate(username, password)
+    def __init__(self, username, password, p_messages):
+        if not self._authenticate(username, password):
+            print("Authentication failed!")
+            exit()
+
         self._username = username
-        self._p_messages = messages
+        self._p_messages = p_messages
+
+        # Security clearance from Bell–LaPadula policy
+        self._clearance_level = control.authenticate(username)
 
     ##################################################
-    # INTERACT :: SHOW
-    # Show a single message
+    # DISPLAY ALL MESSAGES
     ##################################################
-    def show(self):
-        id_ = self._prompt_for_id("display")
-        if not self._p_messages.show(id_):
-            print(f"ERROR! Message ID \'{id_}\' does not exist")
-        print()
-
-    ##################################################
-    # INTERACT :: DISPLAY
-    # Display the set of messages
-    ################################################## 
     def display(self):
         print("Messages:")
         self._p_messages.display()
         print()
 
     ##################################################
-    # INTERACT :: ADD
-    # Add a single message
-    ################################################## 
-    def add(self):
-        self._p_messages.add(self._prompt_for_line("message"),
-                             self._username,
-                             self._prompt_for_line("date"))
+    # SHOW A MESSAGE
+    ##################################################
+    def show(self):
+        id_ = self._prompt_for_id("display")
+        if not self._p_messages.show(id_):
+            print(f"ERROR! Message ID '{id_}' does not exist\n")
+        print()
 
     ##################################################
-    # INTERACT :: UPDATE
-    # Update a single message
-    ################################################## 
+    # ADD MESSAGE (No Write Down)
+    ##################################################
+    def add(self):
+        text = self._prompt_for_line("message")
+        date = self._prompt_for_line("date")
+        level = input("Security level (Public, Confidential, Privileged, Secret): ").strip()
+
+        # Validate level name exists in enum
+        if not hasattr(control.SecurityLevel, level.upper()):
+            print("\tERROR: Invalid security level.\n")
+            return
+
+        sec_level = getattr(control.SecurityLevel, level.upper())
+
+        # Bell–LaPadula: NO WRITE DOWN
+        if control.can_write(self._clearance_level, sec_level):
+            self._p_messages.add(text, self._username, date, level)
+            print("\tMessage successfully added.\n")
+        else:
+            print("\tACCESS DENIED: Cannot write down.\n")
+
+    ##################################################
+    # UPDATE MESSAGE (No Write Down)
+    ##################################################
     def update(self):
         id_ = self._prompt_for_id("update")
-        if not self._p_messages.show(id_):
-            print(f"ERROR! Message ID \'{id_}\' does not exist\n")
+
+        # First check if message exists
+        msg_exists = self._p_messages.show(id_)
+        if not msg_exists:
+            print(f"ERROR! Message ID '{id_}' does not exist\n")
             return
-        self._p_messages.update(id_, self._prompt_for_line("message"))
+
+        # Get the message security level
+        for m in self._p_messages._messages:
+            if m.get_id() == id_:
+                msg_level = m.get_security_level()
+
+                # Bell–LaPadula write rule
+                if not control.can_write(self._clearance_level, msg_level):
+                    print("\tACCESS DENIED: Cannot write down.\n")
+                    return
+
+        new_text = self._prompt_for_line("updated message")
+        self._p_messages.update(id_, new_text)
         print()
-            
-    ##################################################
-    # INTERACT :: REMOVE
-    # Remove one message from the list
-    ################################################## 
-    def remove(self):
-        self._p_messages.remove(self._prompt_for_id("delete"))
 
     ##################################################
-    # INTERACT :: PROMPT FOR LINE
-    # Prompt for a line of input
-    ################################################## 
+    # REMOVE MESSAGE (No Write Down)
+    ##################################################
+    def remove(self):
+        id_ = self._prompt_for_id("delete")
+
+        # Find message
+        for m in self._p_messages._messages:
+            if m.get_id() == id_:
+                msg_level = m.get_security_level()
+
+                # Write check
+                if not control.can_write(self._clearance_level, msg_level):
+                    print("\tACCESS DENIED: Cannot write down.\n")
+                    return
+
+        self._p_messages.remove(id_)
+        print()
+
+    ##################################################
+    # INPUT HELPERS
+    ##################################################
     def _prompt_for_line(self, verb):
         return input(f"Please provide a {verb}: ")
 
-    ##################################################
-    # INTERACT :: PROMPT FOR ID
-    # Prompt for a message ID
-    ################################################## 
     def _prompt_for_id(self, verb):
         return int(input(f"Select the message ID to {verb}: "))
 
     ##################################################
-    # INTERACT :: AUTHENTICATE
-    # Authenticate the user: find their control level
-    ################################################## 
-    def _authenticate(self, username, password):
-        id_ = self._id_from_user(username)
-        return ID_INVALID != id_ and password == users[id_].password
-
+    # AUTHENTICATE USER
     ##################################################
-    # INTERACT :: ID FROM USER
-    # Find the ID of a given user
-    ################################################## 
-    def _id_from_user(self, username):
-        for id_user in range(len(users)):
-            if username == users[id_user].name:
-                return id_user
-        return ID_INVALID
+    def _authenticate(self, username, password):
+        for u in users:
+            if u.name == username and u.password == password:
+                return True
+        return False
 
-#####################################################
-# INTERACT :: DISPLAY USERS
-# Display the set of users in the system
-#####################################################
+
+###############################################################
+# DISPLAY USERS
+###############################################################
 def display_users():
-    for user in users:
-        print(f"\t{user.name}")
+    for u in users:
+        print(f"\t{u.name}")

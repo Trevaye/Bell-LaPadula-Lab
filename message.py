@@ -7,8 +7,6 @@
 #    This class stores the notion of a message
 ########################################################################
 
-import control
-
 ##################################################
 # MESSAGE
 # One message to be displayed to the user or not
@@ -19,64 +17,54 @@ class Message:
     _id_next = 100
 
     ##################################################
-    # MESSAGE DEFAULT CONSTRUCTOR
-    # Set a message to empty
+    # MESSAGE CONSTRUCTOR
+    # Creates a message and stores its security level
     ##################################################
-    def __init__(self):
-        self._empty = True
-        self._text = "Empty"
-        self._author = ""
-        self._date = ""
-        self._id = Message._id_next
-        Message._id_next += 1
-
-    ##################################################
-    # MESSAGE NON-DEFAULT CONSTRUCTOR
-    # Create a message and fill it
-    ##################################################   
-    def __init__(self, text, author, date):
+    def __init__(self, text, author, date, security_level):
         self._text = text
         self._author = author
         self._date = date
+        self._security_level = security_level
         self._id = Message._id_next
         Message._id_next += 1
-        self._empty = False
+        self._empty = (text == "")
 
     ##################################################
-    # MESSAGE :: GET ID
-    # Determine the unique ID of this message
-    ##################################################   
+    # GET SECURITY LEVEL
+    ##################################################
+    def get_security_level(self):
+        return self._security_level
+
+    ##################################################
+    # GET ID
+    ##################################################
     def get_id(self):
         return self._id
 
     ##################################################
-    # MESSAGE :: DISPLAY PROPERTIES
-    # Display the attributes/properties but not the
-    # content of this message
-    ##################################################  
+    # DISPLAY PROPERTIES (ID, Author, Date)
+    ##################################################
     def display_properties(self):
         if self._empty:
             return
         print(f"\t[{self._id}] Message from {self._author} at {self._date}")
 
     ##################################################
-    # MESSAGE :: DISPLAY TEXT
-    # Display the contents or the text of the message
-    ################################################## 
+    # DISPLAY TEXT CONTENT
+    ##################################################
     def display_text(self):
-        print(f"\tMessage: {self._text}")
+        if not self._empty:
+            print(f"\tMessage: {self._text}")
 
     ##################################################
-    # MESSAGE :: UPDATE TEXT
-    # Update the contents or text of the message
-    ################################################## 
+    # UPDATE TEXT
+    ##################################################
     def update_text(self, new_text):
         self._text = new_text
 
     ##################################################
-    # MESSAGE :: CLEAR
-    # Delete the contents of a message and mark it as empty
-    ################################################## 
+    # CLEAR MESSAGE
+    ##################################################
     def clear(self):
         self._text = "Empty"
         self._author = ""
